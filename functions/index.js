@@ -2,8 +2,8 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const admin = require("firebase-admin");
 const axios = require("axios");
-
-const allItems = require("./all.json");
+const fs = require("fs");
+const path = require("path");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -15,27 +15,24 @@ setGlobalOptions({
 
 exports.updateAllWeaponPrices = onSchedule("every 24 hours", async (event) => {
   try {
-    console.log(`Loaded ${allItems.length} total items from all.json.`);
+    const filePath = path.join(__dirname, 'all.json');
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    const allItemsObject = JSON.parse(fileContent);
+
+    const allItems = Object.values(allItemsObject);
+    
+    console.log(`Successfully loaded and processed ${allItems.length} total items from all.json.`);
 
     const weaponsToUpdate = allItems.filter(item => {
-      const isGun = item.type === "Weapon";
-      const isKnife = item.type === "Knife";
-      const isGlove = item.type === "Gloves";
-      return isGun || isKnife || isGlove;
+      const itemCategory = item.category?.name;
+      const validCategories = ["Pistols", "SMGs", "Rifles", "Sniper Rifles", "Shotguns", "Machineguns", "Knives", "Gloves"];
+      return validCategories.includes(itemCategory);
     });
 
-    console.log(`Found ${weaponsToUpdate.length} weapons to update. Starting slow scrape...`);
+    console.log(`Found ${weaponsToUpdate.length} weapon/knife/glove skins to update. Starting slow scrape...`);
 
     for (const skin of weaponsToUpdate) {
-      const skinName = skin.name;
-
-      const skinData = {
-        market_hash_name: skin.name,
-        price: null,
-        icon_url: skin.image,
-        tier: skin.rarity,
-        collection: skin.collection ? skin.collection.name : null
-      };
+      const skinName = skin.market_hash_name || skin.name;
 
       try {
         const encodedName = encodeURIComponent(skinName);
@@ -43,16 +40,26 @@ exports.updateAllWeaponPrices = onSchedule("every 24 hours", async (event) => {
         
         const priceResponse = await axios.get(priceOverviewUrl);
         
+        const skinData = {
+          market_hash_name: skinName,
+          price: null,
+          icon_url: skin.image,
+          tier: skin.rarity?.name || null,
+          collection: skin.collections && skin.collections.length > 0 ? skin.collections[0].name : null
+        };
+        
         if (priceResponse.data && priceResponse.data.success) {
           skinData.price = parseFloat(priceResponse.data.lowest_price.replace('$', '').replace(' USD', ''));
         }
+
+        const docRef = db.collection("skins").doc(skinName);
+        await docRef.set(skinData, { merge: true });
+
       } catch (error) {
-        console.log(`Could not fetch price for ${skinName}. It will be saved as N/A.`);
+        console.log(`Could not fetch price for ${skinName}. Skipping.`);
       }
-
-      const docRef = db.collection("skins").doc(skinName);
-      await docRef.set(skinData, { merge: true });
-
+      
+      // The crucial safety delay
       await new Promise(resolve => setTimeout(resolve, 5000));
     }
 
@@ -60,7 +67,7 @@ exports.updateAllWeaponPrices = onSchedule("every 24 hours", async (event) => {
     return null;
 
   } catch (error) {
-    console.error("Could not load or process all.json file.", error.message);
+    console.error("Critical error during function execution:", error.message);
     return null;
   }
 });
