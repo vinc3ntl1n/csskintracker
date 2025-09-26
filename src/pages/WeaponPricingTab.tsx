@@ -33,7 +33,6 @@ type WearKey =
   | "Well-Worn"
   | "Battle-Scarred";
 
-/* ----------------------- Constants/Utils ---------------------- */
 
 const WEARS: WearKey[] = [
   "Factory New",
@@ -51,7 +50,6 @@ function formatPrice(p?: number | null, pc?: number | null) {
   return "—";
 }
 
-/** Safely pull 'family' and 'wear' out of the RHS (after the '|') */
 function parseFamilyAndWear(display: string): { family: string; wear?: WearKey } {
   const trimmed = display.trim();
   const wearMatch =
@@ -64,29 +62,25 @@ function parseFamilyAndWear(display: string): { family: string; wear?: WearKey }
     ? trimmed.replace(wearMatch[0], "").trim()
     : trimmed;
 
-  // extra guard if any weapon name slipped in
   return { family: family.replace(/\s+\|\s+.*$/, "").trim() || family, wear };
 }
 
-/** Parse full market_hash_name to weapon, family, wear, and variant */
 function parseMarketHashName(mhn: string) {
   const isSt = /\bStatTrak™\b/i.test(mhn);
   const isSouvenir = /\bSouvenir\b/i.test(mhn);
 
-  // Strip leading flags
   let s = mhn.replace(/^StatTrak™\s+/i, "").replace(/^Souvenir\s+/i, "").trim();
-  s = s.replace(/^★\s+/, ""); // remove star for knives (not needed for AK but safe)
+  s = s.replace(/^★\s+/, ""); 
 
   const parts = s.split("|");
   const weapon = parts[0]?.trim() || "";
-  const rhs = (parts[1] || "").trim(); // "Vulcan (Minimal Wear)"
+  const rhs = (parts[1] || "").trim(); 
   const { family, wear } = parseFamilyAndWear(rhs);
 
   const variant: VariantKey = isSouvenir ? "souvenir" : isSt ? "stattrak" : "regular";
   return { weapon, display: rhs, family, wear, variant };
 }
 
-/** Group into: Map<family, Map<wear, Map<variant, SkinDoc>>> */
 function buildGrouping(items: SkinDoc[]) {
   const group = new Map<string, Map<WearKey, Map<VariantKey, SkinDoc>>>();
 
@@ -97,7 +91,7 @@ function buildGrouping(items: SkinDoc[]) {
     const { family, wear, variant } = parseMarketHashName(name);
     if (!family) continue;
 
-    const wKey = (wear ?? "Minimal Wear") as WearKey; // fallback bucket if missing
+    const wKey = (wear ?? "Minimal Wear") as WearKey; 
 
     if (!group.has(family)) group.set(family, new Map());
     const wearMap = group.get(family)!;
@@ -126,7 +120,6 @@ async function fetchCatalogForWeapon(weaponName: string): Promise<CatalogItem[]>
 }
 
 async function fetchSkinDocs(names: string[]): Promise<SkinDoc[]> {
-  // Firestore client: fetch docs one-by-one (OK here)
   const SIZE = 20;
   const chunks: string[][] = [];
   for (let i = 0; i < names.length; i += SIZE) chunks.push(names.slice(i, i + SIZE));
@@ -155,7 +148,6 @@ function titleFor(weaponName: string) {
   return `${weaponName} Skins & Prices`;
 }
 
-/* --------------------------- Component --------------------------- */
 
 const WeaponPricingTabs: React.FC<{ weaponName: string }> = ({ weaponName }) => {
   const [loading, setLoading] = useState(true);
@@ -172,16 +164,13 @@ const WeaponPricingTabs: React.FC<{ weaponName: string }> = ({ weaponName }) => 
         setLoading(true);
         setErr(null);
 
-        // 1) catalog subset for this weapon (no Steam calls)
         const catalog = await fetchCatalogForWeapon(weaponName);
         const names = catalog
           .map((c) => (c.market_hash_name || c.name || "").trim())
           .filter(Boolean);
 
-        // 2) prices from Firestore
         const docs = await fetchSkinDocs(names);
 
-        // 3) group for tabs
         const g = buildGrouping(docs);
         if (cancel) return;
 
@@ -209,7 +198,6 @@ const WeaponPricingTabs: React.FC<{ weaponName: string }> = ({ weaponName }) => 
     <div className="wp-container">
       <h1 className="wp-title">{titleFor(weaponName)}</h1>
 
-      {/* Tabs (skin families) */}
       <div className="wp-tabs" role="tablist" aria-label={`${weaponName} skins`}>
         {families.map((fam) => (
           <button

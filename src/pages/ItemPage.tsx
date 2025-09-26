@@ -4,22 +4,16 @@ import ItemCard from "./ItemCard";
 
 type AnySkin = {
   id?: string;
-  name?: string;                // some datasets use 'name'
-  market_hash_name?: string;    // Steam-style name, often present
+  name?: string;          
+  market_hash_name?: string; 
   image?: string;
-  image_url?: string;           // fallback field name
-  // ...other fields exist but we don't need them here
+  image_url?: string;       
+ 
 };
 
-const ALL_JSON_URL = "/data/all.json"; // if you moved it to public/data/all.json
+const ALL_JSON_URL = "/data/all.json"; 
 
 function buildWeaponMatcher(weaponName: string) {
-  // Matches:
-  //  - "AK-47 | Redline ..."
-  //  - "StatTrak™ AK-47 | Redline ..."
-  //  - "★ Bayonet | Doppler ..."
-  //  - "StatTrak™ ★ Bayonet | Doppler ..."
-  //  - Vanilla knives: "★ Bayonet" or "StatTrak™ ★ Bayonet"
   const escaped = weaponName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const re = new RegExp(
     `^(StatTrak™\\s+)?(★\\s+)?${escaped}(?:\\s*\\|\\s+.+)?$`,
@@ -35,7 +29,6 @@ const ItemPage: React.FC = () => {
   const [allItems, setAllItems] = useState<AnySkin[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Load all.json once (could also cache this with SWR/React Query)
   useEffect(() => {
     let mounted = true;
     (async () => {
