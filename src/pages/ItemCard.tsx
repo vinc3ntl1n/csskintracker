@@ -19,7 +19,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item }) => {
     const encodedName = encodeURIComponent(itemName || '');
 
     return (
-        <Link to={`/item/${encodedName}`}>
+        <Link to={`/weapon/${encodedName}`}>
             <div className="item-card">
                 <img src={imageUrl} alt={itemName} className="item-image" />
                 <p className="item-name">{itemName}</p>

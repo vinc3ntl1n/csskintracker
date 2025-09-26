@@ -1,33 +1,38 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
+// src/main.tsx
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { createBrowserRouter, RouterProvider, useParams } from "react-router-dom";
+import App from "./App";
+import "./index.css";
 
-import App from './App.tsx'
-import NotFoundPage from './pages/NotFoundPage.tsx'
-import HomePage from './pages/HomePage.tsx'
+// your existing pages:
+import HomePage from "./pages/HomePage";          // already in your repo
+import WeaponPage from "./components/WeaponPage";      // (keep if you use it)
+import NotFoundPage from "./pages/NotFoundPage";  // already in your repo
 
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+// the new page:
+import WeaponPricingTabs from "./pages/WeaponPricingTab";
+
+function WeaponRoute() {
+  const { name } = useParams();
+  return <WeaponPricingTabs weaponName={decodeURIComponent(name ?? "AK-47")} />;
+}
 
 const router = createBrowserRouter([
   {
-    path: '/',
-    element: <App />,
+    path: "/",
+    element: <App />,   // layout with Header + <Outlet />
     children: [
-      {
-        index: true,
-        element: <HomePage />,
-      },
-      {
-        path: '*',
-        element: <NotFoundPage />,
-      },
-    ]
+      { index: true, element: <HomePage /> },
+      { path: "weapons", element: <WeaponPage /> },          // keep your existing routes
+      { path: "weapon/:name", element: <WeaponRoute /> },    // ⬅ NEW
+      { path: "*", element: <NotFoundPage /> },
+    ],
   },
-  
-])
+]);
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
     <RouterProvider router={router} />
-  </StrictMode>,
-)
+  </React.StrictMode>
+);

@@ -10,7 +10,7 @@ interface WeaponItem {
   description?: string | null;
 }
 
-const WeaponGrid: React.FC = () => {
+const WeaponPage: React.FC = () => {
   const { knives, gloves, guns } = useMemo(() => {
     const arr = baseWeapons as WeaponItem[];
 
@@ -94,4 +94,4 @@ const WeaponGrid: React.FC = () => {
   );
 };
 
-export default WeaponGrid;
+export default WeaponPage;
